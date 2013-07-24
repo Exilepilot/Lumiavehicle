@@ -265,6 +265,11 @@ function()
     spawner:deleteList()
 end)
 
+
+-- We give the player an option to remove their car from the list. 
+-- TODO: Give the player a warning box to stop them accidently removing 
+-- their precious cars. 
+
 function spawner:remove( row )
     if not (row == -1) then
         local remove = guiGridListRemoveRow(self.gridlist[1], row)
@@ -282,6 +287,7 @@ addEventHandler("onClientGUIClick", spawner.button[3],
 function()
     local row, collumn = guiGridListGetSelectedItem(spawner.gridlist[1])
     local vehicleName = guiGridListGetItemText ( spawner.gridlist[1], row, collumn )
+    -- Remove it from DB
     triggerServerEvent("car:destroy", getLocalPlayer(), getVehicleModelFromName(vehicleName),vehicleName)
     spawner:remove( row )
 end,

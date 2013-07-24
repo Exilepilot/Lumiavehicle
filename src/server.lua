@@ -86,6 +86,7 @@ function sql:execQuery(text, ...)
     end
 end
 
+-- delete the car from db
 function sql:deleteCar(accountName, vehicleName)
     if accountName then
         if #vehicleName > 0 then
@@ -103,6 +104,7 @@ function sql:deleteCar(accountName, vehicleName)
     end
 end
 
+-- We get the vehicle data from your database
 function sql:getData(playerName)
     local qh = self.query("SELECT id, vehicle, state FROM vehiclesystem WHERE account =?", playerName)
     if not (qh == nil or false) then
@@ -112,7 +114,8 @@ function sql:getData(playerName)
     end
 end
 
-
+-- Pass data onto database. 
+-- This is for adding vehicles to your account. 
 function sql:passData(thePlayer, id, state, vehicle)
     if thePlayer then
        local account = getPlayerAccount(thePlayer)
@@ -132,6 +135,8 @@ function sql:passData(thePlayer, id, state, vehicle)
         end
     end
 end
+
+-- We update the state of the vehicle via given arguments. 
 
 function sql:update(accountName, vehicleName, state, id)
     if #accountName >0 and #vehicleName > 0 then
@@ -240,8 +245,7 @@ function(id, name, cost)
     shop:buy(source, id, name, cost)
 end)
 
---DELETE FROM `db51`.`text` WHERE `text`.`vehicle` = \'Infernus\' AND
--- `text`.`id` = 511 AND `text`.`account` = \'Pilot\' LIMIT 1
+-- TODO: Implement this feature fully
 function shop:sell(source, state, id, name, cost)
     local account = getPlayerAccount(source)
     local accountName = getAccountName(account)
@@ -263,15 +267,6 @@ end)
 car = {}
 car._index = car
 
---[[
-       0: Front-left panel
-    1: Front-right panel
-    2: Rear-left panel
-    3: Rear-right panel
-    4: Windscreen
-    5: Front bumper
-    6: Rear bumper
--- ]]
 -- Spawn the car
 function car:spawn(source)
     local car = getElementData(source, "currentCar")     -- Contains vehicle ID, from gridlist
@@ -304,7 +299,7 @@ function car:spawn(source)
                             setVehiclePanelState ( carElement, 4, 3)
                             setVehiclePanelState ( carElement, 5, 3)
                             setElementHealth(carElement, damage)
-                        elseif damage > 700 then
+                        elseif damage > 500 and damage <= 700 then
                             setVehiclePanelState ( carElement, 4, 1)
                             setElementHealth(carElement, damage)
                         end
@@ -326,6 +321,7 @@ function()
     car:spawn(source)
 end)
 
+-- Destroy the car, and delete the row from the database.
 function car:destroy(thePlayer, id, vehicleName)
     if thePlayer then
         local account = getPlayerAccount(thePlayer)
@@ -391,15 +387,21 @@ function car:enter(enteringPlayer, seat, jacked, door, source)
     local owner = getPlayerFromName(getElementID(source))
     local dataid = getElementData(enteringPlayer, 'currentCar')
     local carid = getElementModel(source)
+    local health = getElementHealth(source)
     if door == 0 or 1 then
-        if owner == enteringPlayer then
-            if isVehicleLocked(source) then
-                setVehicleLocked(source,false)
-                if isVehicleDamageProof(source) then
-                    setVehicleDamageProof(source, false)
+        if isVehicleLocked(source) and isVehicleDamageProof(source) then 
+            if owner == enteringPlayer then 
+                setVehicleLocked(source, false)
+                setVehicleDamageProof(source, false)
+                outputChatBox("#ff0000[Lumia] #ffffff The cars current health is: "..health, enteringPlayer, 0,0,0,true)
+                if health < 700 then
+                    outputChatBox("#ff0000[Lumia] #ffffff You should consider repairing it, at a small cost!",enteringPlayer,0,0,0,true) 
                 end
-            end
-        end
+            else
+                cancelEvent()
+                outputChatBox("#ff0000[Lumia] #ffffff This car was recently spawned, give the owner a chance!", enteringPlayer, 0,0,0,true) 
+            end 
+        end 
     end
 end
 addEventHandler("onVehicleStartEnter", getRootElement(),
