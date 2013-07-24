@@ -36,10 +36,6 @@ warning_panel.button[1] = guiCreateButton(0.05, 0.82, 0.45, 0.08, "ACCEPT", true
 guiSetProperty(warning_panel.button[1], "NormalTextColour", "FFAAAAAA")
 warning_panel.button[2] = guiCreateButton(0.50, 0.82, 0.45, 0.08, "DECLINE", true, warning_panel.window[1])
 guiSetProperty(warning_panel.button[2], "NormalTextColour", "FFAAAAAA")
-warning_panel.label[2] = guiCreateLabel(0.37, 0.95, 0.26, 0.03, "Don't show again", true, warning_panel.window[1])
-guiSetFont(warning_panel.label[2], "default-bold-small")
-guiLabelSetColor(warning_panel.label[2], 253, 1, 2)
-guiLabelSetHorizontalAlign(warning_panel.label[2], "center", false)
 guiSetVisible(warning_panel.window[1], false)
 
 
@@ -48,38 +44,29 @@ function warning_panel:show(msg)
     if msg == nil then 
         msg = self.message or "No message found"
     end 
-
     if not (visible) then
         guiSetVisible(self.window[1], true)
         guiBringToFront(self.window[1])
         guiSetText(self.memo[1], msg)
         guiSetProperty(self.button[1], 'Disabled', 'True')
         guiSetProperty(self.button[2], 'Disabled', 'True')
+        guiSetProperty(spawner.button[4], 'Disabled', 'True')
         setTimer(
         function()
             guiSetProperty(self.button[1], 'Disabled', 'False')
             guiSetProperty(self.button[2], 'Disabled', 'False')
-        end, 2000, 1)
+        end, 500, 1)
     end 
 end 
 
--- Call function on button press
-function warning_panel:onAccept(func)
-    if type(func) == 'function' then 
-        addEventHandler("onClientGUIClick", self.button[1], func, false)
-    end 
-end
-
-function warning_panel:onDecline(func)
-    if type(func) == 'function' then 
-        addEventHandler("onClientGUIClick", self.button[2], func, false)
-    end 
-end
-
 -- Close the panel 
 function warning_panel:close()
-    local visible = getGuiVisible(self.window[1])
+    local visible = guiGetVisible(self.window[1])
     if visible then 
         guiSetVisible(self.window[1], false)
+        setTimer(
+        function ()
+            guiSetProperty(spawner.button[4], 'Disabled', 'False')
+        end, 500, 1)
     end 
 end 

@@ -268,7 +268,7 @@ car = {}
 car._index = car
 
 -- Spawn the car
-function car:spawn(source)
+function car:spawn(source, warp)
     local car = getElementData(source, "currentCar")     -- Contains vehicle ID, from gridlist
     local carName = getVehicleNameFromModel(car)
     local carId = getVehicleModelFromName(carName)
@@ -276,10 +276,17 @@ function car:spawn(source)
     if not (isGuestAccount (getPlayerAccount (source))) and not (isPedInVehicle(source)) then
         if not isElement(getElementByID(getPlayerName(source))) then
             local x,y,z = getElementPosition(source)
-            local carElement = createVehicle(tonumber(car), x+5,y,z)
+            carElement = createVehicle(tonumber(car), x,y,z)
+            if warp == true then 
+                local warp = warpPedIntoVehicle(source, carElement)
+                outputDebugString(tostring(warp))
+            else
+                local x,y,z = getElementPosition(carElement)
+                setElementPosition(carElement, x+5,y,z)
+                setVehicleDamageProof(carElement,true)
+                setVehicleLocked(carElement,true)
+            end 
             setElementID(carElement, getPlayerName(source)) -- Give the car an ID, to make it unique
-            setVehicleDamageProof(carElement,true)
-            setVehicleLocked(carElement,true)
             local account = getPlayerAccount(source)
             local accountName = getAccountName(account)
             local data = sql:getData(accountName)
@@ -317,8 +324,8 @@ end
 
 addEvent("car:spawn", true)
 addEventHandler("car:spawn", getRootElement(),
-function()
-    car:spawn(source)
+function(warp)
+    car:spawn(source, warp)
 end)
 
 -- Destroy the car, and delete the row from the database.
@@ -344,9 +351,9 @@ function car:unspawn(source)
     local data = getElementData(source, 'currentCar')
     local account = getPlayerAccount(source)
     local accountName = getAccountName(account)
-    local carName = getVehicleNameFromModel(data)
-    local carId = getVehicleModelFromName(carName)
     if isElement(car) or data == carId then
+        local carName = getVehicleNameFromModel(data)
+        local carId = getVehicleModelFromName(carName)
         local health = getElementHealth(car)
         local name = getVehicleName(car)
         local id = getVehicleModelFromName(name)
@@ -393,10 +400,6 @@ function car:enter(enteringPlayer, seat, jacked, door, source)
             if owner == enteringPlayer then 
                 setVehicleLocked(source, false)
                 setVehicleDamageProof(source, false)
-                outputChatBox("#ff0000[Lumia] #ffffff The cars current health is: "..health, enteringPlayer, 0,0,0,true)
-                if health < 700 then
-                    outputChatBox("#ff0000[Lumia] #ffffff You should consider repairing it, at a small cost!",enteringPlayer,0,0,0,true) 
-                end
             else
                 cancelEvent()
                 outputChatBox("#ff0000[Lumia] #ffffff This car was recently spawned, give the owner a chance!", enteringPlayer, 0,0,0,true) 
@@ -407,4 +410,58 @@ end
 addEventHandler("onVehicleStartEnter", getRootElement(),
 function(enteringPlayer, seat, jacked, door)
     car:enter(enteringPlayer,seat,jacked,door,source)
+end)
+
+addEventHandler("onVehicleEnter", getRootElement(), 
+function (enteringPlayer, seat )
+    local owner = getPlayerFromName(getElementID(source))
+    local dataid = getElementData(enteringPlayer, 'currentCar')
+    local carid = getElementModel(source)
+    local health = getElementHealth(source)
+    if door == 0 or 1 then 
+        if owner == enteringPlayer then
+                outputChatBox("#ff0000[Lumia] #ffffff The cars current health is: "..health, enteringPlayer, 0,0,0,true)
+            if health < 700 then
+                setTimer(
+                function() 
+                    outputChatBox("#ff0000[Lumia] #ffffff You should consider repairing it, at a small cost!",enteringPlayer,0,0,0,true)
+                end, 1000, 1)
+            end 
+        end 
+    end  
+end)
+player_data = {}
+player_data._index = player_data
+
+function player_data:vehicleWarp(source, checked)
+    if isElement(source) then 
+        local account = getPlayerAccount(source)
+        local set = setAccountData(account, 'Lumiavehicle.warp', tostring(checked))
+        outputDebugString(tostring(checked))
+        return set 
+    end 
+end
+addEvent("player_data:vehicleWarp", true)
+addEventHandler("player_data:vehicleWarp", getRootElement(), 
+function(checked)
+    player_data:vehicleWarp(source, checked)
+end)
+
+function player_data:setWarp(source)
+    if isElement(source) then 
+        local account = getPlayerAccount(source)
+        local data = getAccountData(account, 'Lumiavehicle.warp')
+        if data == "true" then 
+            outputDebugString("True")
+            triggerClientEvent("spawner:setWarp", source, true)
+        elseif data == "false" then 
+            outputDebugString("False")
+            triggerClientEvent("spawner:setWarp", source, false)
+        end 
+    end 
+end
+addEvent("player_data:setWarp", true)
+addEventHandler("player_data:setWarp", getRootElement(), 
+function()
+    player_data:setWarp(source)
 end)

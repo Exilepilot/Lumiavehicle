@@ -3,6 +3,7 @@
 --]]
 
 
+
 --[[
     shop
 --]]
@@ -90,6 +91,11 @@ function()
     shop:buy()
 end,false)
 
+addEventHandler("onClientGUIDoubleClick", carGridList,
+function ( )
+    shop:buy()
+end, false)
+
 
 
 --[[
@@ -145,7 +151,7 @@ end
 addEventHandler("onClientGUIClick", destroyBut,
 function()
     menu:unSpawn()
-end)
+end, false )
 
 --[[
     spawner
@@ -155,7 +161,8 @@ spawner = {
     gridlist = {},
     window = {},
     button = {},
-    label = {}
+    label = {},
+    checkbox = {},
 }
 
 spawner._index = spawner
@@ -187,12 +194,32 @@ spawner.button[4] = guiCreateButton(0.35, 0.91, 0.30, 0.05, "Close", true, spawn
 guiSetProperty(spawner.button[4], "NormalTextColour", "FFAAAAAA")
 spawner.label[1] = guiCreateLabel(0.08, 0.03, 0.84, 0.03, "Please report and bugs. Don't exploit them, unless on dimension /b/.", true, spawner.window[1])
 guiSetFont(spawner.label[1], "default-bold-small")
+spawner.checkbox[1] = guiCreateCheckBox(0.05, 0.96, 0.03, 0.03, "", false, true, spawner.window[1])
+spawner.label[2] = guiCreateLabel(0.10, 0.96, 0.31, 0.03, "Warp into vehicle", true, spawner.window[1])
+guiSetFont(spawner.label[2], "default-bold-small")
+guiLabelSetHorizontalAlign(spawner.label[2], "center", false)
 guiSetVisible(spawner.window[1], false)
+
+function spawner:setWarp(warp)
+    if warp == true then 
+        self.warp = true
+        guiCheckBoxSetSelected(self.checkbox[1], self.warp)
+    elseif warp == false then 
+        self.warp = false
+        guiCheckBoxSetSelected(self.checkbox[1], self.warp)
+    end 
+end
+addEvent("spawner:setWarp", true)
+addEventHandler("spawner:setWarp", getLocalPlayer(), 
+function (warp)
+    spawner:setWarp(warp)
+end)
 
 
 function spawner:open()
     local visible = guiGetVisible(self.window[1])
     local menu = guiGetVisible(theWindow)
+    triggerServerEvent("player_data:setWarp", getLocalPlayer())
     if not visible then
         if menu  then
             guiSetVisible(theWindow, false)
@@ -204,6 +231,12 @@ function spawner:open()
         end
     end
 end
+
+addEventHandler("onClientGUIClick", spawner.checkbox[1], 
+function ()
+    local check = guiCheckBoxGetSelected(spawner.checkbox[1])
+    triggerServerEvent("player_data:vehicleWarp", getLocalPlayer(), check)   
+end,false)
 
 addEventHandler("onClientGUIClick", spawnBut,
 function()
@@ -282,21 +315,35 @@ function spawner:remove( row )
     end
     return
 end
-
 addEventHandler("onClientGUIClick", spawner.button[3],
 function()
-    local row, collumn = guiGridListGetSelectedItem(spawner.gridlist[1])
-    local vehicleName = guiGridListGetItemText ( spawner.gridlist[1], row, collumn )
-    -- Remove it from DB
-    triggerServerEvent("car:destroy", getLocalPlayer(), getVehicleModelFromName(vehicleName),vehicleName)
-    spawner:remove( row )
+    local row, column = guiGridListGetSelectedItem(spawner.gridlist[1])
+    if not(row == -1 or column == -1) then 
+        warning_panel.message = "You're about to remove a vehicle from your car list. By doing this, you won't be able to go back. Please don't ask admins to revert your decision, they won't. Although removing your car is perminent, why not sell it for money?"
+        warning_panel:show()
+    end 
 end,
 false)
+
+function removeAccept()
+    warning_panel:close() 
+
+    local row, collumn = guiGridListGetSelectedItem(spawner.gridlist[1])
+    local vehicleName = guiGridListGetItemText ( spawner.gridlist[1], row, collumn )
+    triggerServerEvent("car:destroy", getLocalPlayer(), getVehicleModelFromName(vehicleName),vehicleName)
+    spawner:remove( row )
+end 
+addEventHandler("onClientGUIClick", warning_panel.button[1], removeAccept, false) 
+function removeDecline()
+    warning_panel:close() 
+end
+addEventHandler("onClientGUIClick", warning_panel.button[2], removeDecline, false)
+
 
 function spawner:spawn(vehicleID)
     if vehicleID >= 400 and vehicleID <= 611 then
         setElementData(getLocalPlayer(),'currentCar', tostring(vehicleID))
-        triggerServerEvent("car:spawn", getLocalPlayer())
+        triggerServerEvent("car:spawn", getLocalPlayer(), self.warp)
     end
 end
 addEventHandler("onClientGUIClick", spawner.button[1],
